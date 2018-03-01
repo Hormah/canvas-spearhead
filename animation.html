@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <style type="text/css">
+            body, html, canvas {
+              margin: 0px;
+              padding: 0px;
+              position: absolute;
+              background-color: #fff;
+            }
+
+            #the_canvas {
+                position: relative;
+                float:left;
+                clear: both;
+            }
+        </style>
+    </head>
+    <canvas id="the_canvas"></canvas>
+    <div id="info" style="position:relative; float:left; width: 100%; height: 180px; clear:both;"></div>
+
+    <script type="text/javascript">
+        window.requestAnimFrame = (
+            function(){
+                return window.requestAnimationFrame || window.webkitRequestAnimationFrame ||
+                       window.mozRequestAnimationFrame || function(callback){window.setTimeout(callback, 1000/100);};
+            }
+        )();
+
+        function between(min, max) {
+          return Math.random() * (max - min) + min;
+        }
+
+        //context and id of canvas
+        var c = document.getElementById('the_canvas');
+        var ctx = c.getContext('2d');
+
+        //width and height of canvas
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        //Setting the width and height for canvas. Full screen
+        c.width = w;
+        c.height = h;
+
+        //particle number - change it!
+        var partNum = 200;
+
+        var mouse = {
+          x: w / 2,
+          y: h / 2,
+          r: 50
+        };
+        //mouse position
+
+        document.addEventListener('mousemove',
+            function(e) {
+            mouse.x = e.clientX || e.pageX;
+            mouse.y = e.clientY || e.pageY;
+            },
+            false
+        );
+        //finding the mouse position
+
+        mouse.r = 25;
+        var cursorOpacity = 0.8;
+        var cursorTrue = false;
+        var cursorMinDest = 25;
+
+        // making implode
+        document.addEventListener('mousedown', function(){
+          mouse.r = 100;
+          cursorOpacity = 0.2;
+          cursorTrue = true;
+          cursorMinDest = 200;
+        }, false);
+
+        // making implode
+        document.addEventListener('mouseup', function(){
+          mouse.r = 25;
+          cursorOpacity = 0.8;
+          cursorTrue = false;
+          cursorMinDest = 25;
+        }, false);
+
+
+        var logo = new logo;
+
+        var particles = [];
+        for(i = 0; i < partNum; i++) {
+          particles.push(new particle);
+        }
+
+
+        function logo() {
+            this.box_width = 1;
+            this.box_height = 1;
+            this.src = "logo.png";
+
+            this.x = (c.width/2) - (this.box_width/2);
+            this.y = (c.height/2) -  (this.box_height/2);
+
+            var obj = this;
+
+            this.checkParticle = function (p) {
+              if (((p.x >= obj.x) & (p.x <= obj.x + obj.box_width)) &
+                  ((p.y >= obj.y) & (p.y <= obj.y + obj.box_height))) {
+                p.changeDirectionX();
+              }
+              if (((p.y >= obj.y) & (p.y <= obj.y + obj.box_height)) &
+                  ((p.x >= obj.x) & (p.x <= obj.x + obj.box_width))) {
+                p.changeDirectionY();
+              }
+            };
+        }
+
+        //the particle function (class)
+        function particle() {
+          //setting the mouse position to the particle x and y
+          this.x = Math.random() * c.width;
+          this.y = Math.random() * c.height;
+          //this.x = 500;
+          //this.y = 500;
+
+          this.directionFrameCntX = 0;
+          this.directionFrameCntY = 0;
+
+          if (((this.x > logo.x) && (this.x < logo.x + logo.box_width)) && ((this.y > logo.y) && (this.y < logo.y+logo.box_height))) {
+              var diffx = this.x-logo.x;
+              var diffy = this.y-logo.y;
+              diffx = (diffx < 0 ? diffx * -1 : diffx);
+              diffy = (diffy < 0 ? diffy * -1 : diffx);
+
+              this.x = this.x - diffx;
+              this.y = this.y - diffy;
+          }
+
+          //this.x = 150;
+          //this.y = 150;
+
+          this.vx = 0;
+          this.vy = 0;
+
+          //RamdomSize
+          this.r = Math.floor(((Math.random()*10 + 10))+(Math.random()*30));
+          //Want it the same size:
+          //this.r =  30;
+
+          this.angle = 0;
+
+          var colour_1 = '#00f';
+          var colour_2 = '#ff0';
+          var colour_3 = '#0f0';
+          var colour_4 = '#f00';
+          var array = [colour_1, colour_2, colour_3, colour_4];
+          this.color = array[Math.floor(Math.random() * 4)];
+
+          var obj = this;
+
+          this.changeDirectionX = function () {
+              if (obj.directionFrameCntX > 15) {
+                obj.vx *= -1;
+                obj.directionFrameCntX = 0;
+              }
+          };
+
+          this.changeDirectionY = function () {
+              if (obj.directionFrameCntY > 15) {
+                obj.vy *= -1;
+                obj.directionFrameCntY = 0;
+              }
+          };
+
+          this.setFrameCount = function () {
+              obj.directionFrameCntX++;
+              obj.directionFrameCntY++;
+          };
+
+        }
+
+        function findCursorToParticleAngle(p) {
+           /* Taken from statck overflow */
+
+           /*
+            The vector AB goes between the center of the box and the mouse position We went to calculate Θ (theta), which is the angle between the X axis and AB. Since AB creates a triangle with the X and Y axes, we can use the Arctan function to calculate it. More precisely, we use the convenience function of Arctan2 which gives a positive angle when y>0 and negative angle when y<0.
+            atan2 returns the degrees in radians, and CSS works with degrees, so we convert between the two using 180/Math.PI. (A radian is the measure of an angle that, when drawn a central angle of a circle, intercepts an arc whose length is equal to the length of the radius of the circle. - Taken from here )
+            One last caveat - Since in the browser the Y axis is inverted (meaning, the lower you go, the higher the Y value gets), we had to flip the Y axis: We did so by adding a minus sign on the Y term:
+            - (e.pageY- boxCenter[1])
+
+            I hope this helps clear some things...
+            Here's an isolated jsfiddle example (http://jsfiddle.net/opherv/ddGHz/)
+
+           */
+           return Math.atan2(mouse.x-p.x,- (mouse.y- p.y) )*(180/Math.PI);
+        }
+
+        function draw() {
+            var info = document.getElementById("info");
+            requestAnimFrame(draw);
+
+            /* Draw Stage Backgound */
+            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            /* Draw the Cursor */
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + cursorOpacity + ')';
+            ctx.arc(mouse.x, mouse.y, mouse.r, Math.PI * 2, false);
+            ctx.fill();
+
+            /* Draw Logo Reserved  Area */
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.rect(logo.x, logo.y, logo.box_width, logo.box_height);
+            ctx.fill();
+
+            /* Draw the Particles */
+            for(t = 0; t < particles.length; t++) {
+              var p = particles[t];
+
+              p.x+=p.vx;
+              p.y+=p.vy;
+
+              p.vx*=0.95;
+              p.vy*=0.95;
+
+              if(p.y < 0 + p.r) {
+                p.changeDirectionY();
+              }
+              // If the particle goes of screen, alter its y direction
+              if(p.y > c.height - p.r) {
+                p.changeDirectionY();
+              }
+
+              if(p.x < p.r) {
+                p.changeDirectionX();
+              }
+
+              if(p.x > c.width - p.r) {
+                p.changeDirectionX();
+              }
+
+              if(p.r < 3) {
+                p.color = 'white';
+              };
+
+
+              //Check distance between the current particle and others.
+              for(j = 0; j < particles.length; j++) {
+                var pp = particles[j];
+                distance(p, pp);
+              }
+
+              distance(mouse, p);
+
+              logo.checkParticle(p);
+
+              p.angle = findCursorToParticleAngle(p);
+
+
+              ctx.beginPath();
+              ctx.fillStyle = p.color;
+
+              var x1,y1;
+              var x2,y2;
+
+              var radiant_1 = 90 - (p.angle * (Math.PI / 180))*-1;
+              var radiant_2 = 90 - ((p.angle - 45) * (Math.PI / 180))*-1;
+              info.innerHTML = "Angle:" +p.angle+" COS:"+Math.cos(radiant_1)+" SIN:"+Math.sin(radiant_1);
+
+              x1 = p.x+(p.r*Math.cos(radiant_1));
+              y1 = p.y+(p.r*Math.sin(radiant_1));
+
+              x2 = p.x+(p.r*Math.cos(radiant_2));
+              y2 = p.y+(p.r*Math.sin(radiant_2));
+
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(x1, y1);
+
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(x2, y2);
+              ctx.lineTo(x1,y1);
+
+              ctx.stroke();
+
+              ctx.fill();
+              ctx.arc(p.x, p.y, p.r, Math.PI * 2, false);
+
+              p.setFrameCount();
+
+            }
+        }
+
+        function distance(p1, p2) {
+            var dist,
+                dx = p1.x - p2.x,
+                dy = p1.y - p2.y;
+
+            dist = Math.sqrt(dx*dx + dy*dy);
+
+            // Draw the line when distance is smaller
+            // then the minimum distance
+            var minDist = p1.r + p2.r;
+
+            if(dist <= minDist) {
+                var ax = dx,
+                    ay = dy;
+                // Some acceleration for the partcles
+                // depending upon their distance
+                if(cursorTrue) {
+                    p2.vx += ax/100;
+                    p2.vy += ay/100;
+                } else {
+                    p2.vx -= ax/30;
+                    p2.vy -= ay/30;
+                }
+            }
+        }
+
+        draw();
+    </script>
+</html>
